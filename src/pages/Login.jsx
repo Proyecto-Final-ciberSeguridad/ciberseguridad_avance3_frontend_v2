@@ -5,7 +5,7 @@ import { loginUser } from '../auth';
 
 export default function Login() {
   const nav = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -14,14 +14,17 @@ export default function Login() {
   async function submit(e) {
     e.preventDefault();
     setError('');
-    if (!username.trim() || !password) return setError('Completá usuario y contraseña.');
+    if (!email.trim() || !password) return setError('Completá correo institucional y contraseña.');
+    if (!email.trim().toLowerCase().endsWith('@santafe.gov.ar')) return setError('Ingresá tu correo institucional @santafe.gov.ar.');
     setLoading(true);
     try {
-      await loginUser(username, password);
+      await loginUser(email, password);
       nav('/inicio');
     } catch (err) {
       setError(err.message);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -32,9 +35,16 @@ export default function Login() {
           <div className="auth-icon"><span className="material-symbols-outlined">lock_person</span></div>
           <h1>Iniciar sesión</h1>
           <p>Ingresá tus datos para continuar con tu capacitación.</p>
-          <label>Usuario <b>*</b><input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Ej: usuario.apellido" /></label>
-          <div className="info-box">ⓘ El usuario corresponde a la parte de tu correo institucional anterior a <strong>@santafe.gov.ar</strong>.</div>
-          <label>Contraseña <b>*</b><div className="password-wrap"><input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Ingresá tu contraseña"/><button type="button" onClick={()=>setShowPassword(v=>!v)} aria-label="Mostrar u ocultar contraseña"><span className="material-symbols-outlined">visibility</span></button></div></label>
+          <label>Correo institucional <b>*</b>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nombre.apellido@santafe.gov.ar" autoComplete="email" />
+          </label>
+          <label>Contraseña <b>*</b>
+            <div className="password-wrap">
+              <input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Ingresá tu contraseña" autoComplete="current-password" />
+              <button type="button" onClick={()=>setShowPassword(v=>!v)} aria-label="Mostrar u ocultar contraseña"><span className="material-symbols-outlined">visibility</span></button>
+            </div>
+          </label>
+          <div className="forgot-row"><Link to="/olvide-contrasena">¿Olvidaste tu contraseña?</Link></div>
           {error && <div className="error-box">{error}</div>}
           <button className="btn btn-primary full" disabled={loading}>{loading?'Validando...':'Ingresar →'}</button>
           <div className="auth-separator" />
