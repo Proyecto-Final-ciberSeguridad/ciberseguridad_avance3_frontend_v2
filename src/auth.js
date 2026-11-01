@@ -12,11 +12,11 @@ function clearSession() {
   localStorage.removeItem(CURRENT_USER_KEY);
 }
 
-function getToken() {
+export function getToken() {
   return localStorage.getItem(SESSION_TOKEN_KEY) || '';
 }
 
-async function api(path, options = {}) {
+export async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;

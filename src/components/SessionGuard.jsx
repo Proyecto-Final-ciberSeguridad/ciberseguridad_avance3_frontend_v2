@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { getCurrentUser, refreshCurrentUser } from '../auth';
+import { syncProgressFromServer } from '../progress';
 
 export default function SessionGuard({ children }) {
   const [status, setStatus] = useState(getCurrentUser() ? 'checking' : 'unauthenticated');
@@ -8,7 +9,9 @@ export default function SessionGuard({ children }) {
   useEffect(() => {
     let active = true;
     if (status === 'unauthenticated') return undefined;
-    refreshCurrentUser().then(user => {
+    refreshCurrentUser().then(async user => {
+      if (!active) return;
+      if(user) await syncProgressFromServer();
       if (!active) return;
       setStatus(user ? 'authenticated' : 'unauthenticated');
     });

@@ -5,7 +5,7 @@ import { getCurrentUser, logoutUser } from '../auth';
 const modules = [
   {id:1,title:'Introducción a la Seguridad Digital',desc:'Conceptos básicos de seguridad digital y su importancia en el trabajo cotidiano.',accent:'blue',icon:'enhanced_encryption'},
   {id:2,title:'Identificación de Riesgos',desc:'Reconocimiento de amenazas frecuentes como phishing, contraseñas inseguras, malware y prácticas de navegación.',accent:'cyan',icon:'security_update_warning'},
-  {id:3,title:'Protocolos de Respuesta',desc:'Qué hacer frente a una situación sospechosa o un posible incidente de seguridad.',accent:'sky',icon:'campaign'},
+  {id:3,title:'Detección y respuesta ante incidentes',desc:'Qué hacer frente a una situación sospechosa o un posible incidente de seguridad.',accent:'sky',icon:'campaign'},
   {id:4,title:'Cierre y Verificación',desc:'Integración de contenidos, repaso general y compromiso con la seguridad organizacional.',accent:'green',icon:'military_tech'}
 ];
 
@@ -19,8 +19,8 @@ export default function Dashboard(){
         <a className="active">⌂ <span>Inicio</span></a>
         <div className="nav-heading">▤ <span>Módulos</span></div>
         <div className="module-links">{modules.map(m=><button key={m.id} onClick={()=>nav(`/modulos/${m.id}`)}><i/> <span><b>Módulo {m.id}</b><small>{m.title}</small></span></button>)}</div>
-        <button className="plain-nav">↗ <span>Mi progreso</span></button>
-        <button className="plain-nav">♙ <span>Certificado</span></button>
+        <button className="plain-nav" onClick={()=>nav('/progreso')}>↗ <span>Mi progreso</span></button>
+        <button className="plain-nav" onClick={()=>nav('/progreso#certificado')}>♙ <span>Certificado</span></button>
       </nav>
       <div className="user-box"><div className="avatar">{user?.fullName?.split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase() || 'US'}</div><div><strong>{user?.fullName || 'Usuario'}</strong><small>Agente Público Provincial</small></div><button className="logout" onClick={logout}>Cerrar sesión</button></div>
     </aside>

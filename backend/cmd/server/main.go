@@ -49,6 +49,10 @@ func main() {
 	mux.HandleFunc("GET /api/auth/me", a.me)
 	mux.HandleFunc("POST /api/auth/forgot-password", a.forgotPassword)
 	mux.HandleFunc("POST /api/auth/reset-password", a.resetPassword)
+	mux.HandleFunc("GET /api/progress", a.getProgress)
+	mux.HandleFunc("GET /api/training-summary", a.trainingSummary)
+	mux.HandleFunc("PUT /api/progress/{module}/{resource}", a.putProgress)
+	mux.HandleFunc("POST /api/evaluations/{module}", a.saveEvaluation)
 
 	srv := &http.Server{Addr: ":" + port, Handler: a.cors(mux), ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("API Santa Fe Capacita escuchando en http://localhost:%s", port)
@@ -88,7 +92,7 @@ func (a *app) cors(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", a.allowedOrigin)
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -226,4 +230,159 @@ func digitsBetween(v string, min, max int) bool {
 		}
 	}
 	return true
+}
+
+func (a *app) authenticatedUser(r *http.Request) (auth.User, error) {
+	token := bearer(r)
+	if token == "" {
+		return auth.User{}, auth.ErrInvalidCredentials
+	}
+	return a.auth.UserBySession(r.Context(), token)
+}
+
+func (a *app) getProgress(w http.ResponseWriter, r *http.Request) {
+	user, err := a.authenticatedUser(r)
+	if err != nil {
+		writeJSON(w, 401, apiError{"Sesión no válida o vencida."})
+		return
+	}
+	rows, err := a.db.QueryContext(r.Context(), `SELECT module_id, resource_key, completed FROM training_progress WHERE user_id=$1`, user.ID)
+	if err != nil {
+		log.Printf("get progress: %v", err)
+		writeJSON(w, 500, apiError{"No se pudo consultar el progreso."})
+		return
+	}
+	defer rows.Close()
+	progress := map[string]map[string]bool{}
+	for rows.Next() {
+		var moduleID int
+		var key string
+		var completed bool
+		if err := rows.Scan(&moduleID, &key, &completed); err != nil {
+			writeJSON(w, 500, apiError{"No se pudo consultar el progreso."})
+			return
+		}
+		m := strconv.Itoa(moduleID)
+		if progress[m] == nil {
+			progress[m] = map[string]bool{}
+		}
+		progress[m][key] = completed
+	}
+	writeJSON(w, 200, map[string]any{"progress": progress})
+}
+
+func (a *app) putProgress(w http.ResponseWriter, r *http.Request) {
+	user, err := a.authenticatedUser(r)
+	if err != nil {
+		writeJSON(w, 401, apiError{"Sesión no válida o vencida."})
+		return
+	}
+	moduleID, err := strconv.Atoi(r.PathValue("module"))
+	resource := strings.TrimSpace(r.PathValue("resource"))
+	if err != nil || moduleID < 1 || moduleID > 4 || resource == "" || len(resource) > 80 {
+		writeJSON(w, 400, apiError{"Recurso inválido."})
+		return
+	}
+	var in struct {
+		Completed bool `json:"completed"`
+	}
+	if err := decodeJSON(r, &in); err != nil {
+		writeJSON(w, 400, apiError{"Solicitud inválida."})
+		return
+	}
+	_, err = a.db.ExecContext(r.Context(), `
+		INSERT INTO training_progress(user_id,module_id,resource_key,completed,completed_at,updated_at)
+		VALUES($1,$2,$3,$4,CASE WHEN $4 THEN NOW() ELSE NULL END,NOW())
+		ON CONFLICT(user_id,module_id,resource_key)
+		DO UPDATE SET completed=EXCLUDED.completed,
+		completed_at=CASE WHEN EXCLUDED.completed THEN COALESCE(training_progress.completed_at,NOW()) ELSE NULL END,
+		updated_at=NOW()`, user.ID, moduleID, resource, in.Completed)
+	if err != nil {
+		log.Printf("put progress: %v", err)
+		writeJSON(w, 500, apiError{"No se pudo guardar el progreso."})
+		return
+	}
+	writeJSON(w, 200, map[string]bool{"ok": true})
+}
+
+func (a *app) saveEvaluation(w http.ResponseWriter, r *http.Request) {
+	user, err := a.authenticatedUser(r)
+	if err != nil {
+		writeJSON(w, 401, apiError{"Sesión no válida o vencida."})
+		return
+	}
+	moduleID, err := strconv.Atoi(r.PathValue("module"))
+	if err != nil || moduleID < 1 || moduleID > 4 {
+		writeJSON(w, 400, apiError{"Módulo inválido."})
+		return
+	}
+	var in struct {
+		Score   int             `json:"score"`
+		Total   int             `json:"total"`
+		Answers json.RawMessage `json:"answers"`
+	}
+	if err := decodeJSON(r, &in); err != nil || in.Score < 0 || in.Total <= 0 || in.Score > in.Total {
+		writeJSON(w, 400, apiError{"Resultado de evaluación inválido."})
+		return
+	}
+	if len(in.Answers) == 0 {
+		in.Answers = json.RawMessage(`[]`)
+	}
+	if _, err := a.db.ExecContext(r.Context(), `INSERT INTO evaluation_results(user_id,module_id,score,total,answers) VALUES($1,$2,$3,$4,$5::jsonb)`, user.ID, moduleID, in.Score, in.Total, string(in.Answers)); err != nil {
+		log.Printf("save evaluation: %v", err)
+		writeJSON(w, 500, apiError{"No se pudo guardar el resultado."})
+		return
+	}
+	writeJSON(w, 201, map[string]bool{"ok": true})
+}
+
+func (a *app) trainingSummary(w http.ResponseWriter, r *http.Request) {
+	user, err := a.authenticatedUser(r)
+	if err != nil {
+		writeJSON(w, 401, apiError{"Sesión no válida o vencida."})
+		return
+	}
+
+	evaluations := map[string]any{}
+	rows, err := a.db.QueryContext(r.Context(), `
+		SELECT DISTINCT ON (module_id) module_id, score, total, created_at
+		FROM evaluation_results
+		WHERE user_id=$1
+		ORDER BY module_id, created_at DESC`, user.ID)
+	if err != nil {
+		log.Printf("training summary evaluations: %v", err)
+		writeJSON(w, 500, apiError{"No se pudo consultar el resumen de capacitación."})
+		return
+	}
+	defer rows.Close()
+
+	var lastActivity time.Time
+	for rows.Next() {
+		var moduleID, score, total int
+		var createdAt time.Time
+		if err := rows.Scan(&moduleID, &score, &total, &createdAt); err != nil {
+			writeJSON(w, 500, apiError{"No se pudo consultar el resumen de capacitación."})
+			return
+		}
+		evaluations[strconv.Itoa(moduleID)] = map[string]any{
+			"score": score, "total": total, "createdAt": createdAt,
+		}
+		if createdAt.After(lastActivity) {
+			lastActivity = createdAt
+		}
+	}
+
+	var progressActivity sql.NullTime
+	if err := a.db.QueryRowContext(r.Context(), `SELECT MAX(updated_at) FROM training_progress WHERE user_id=$1`, user.ID).Scan(&progressActivity); err != nil {
+		log.Printf("training summary progress activity: %v", err)
+	}
+	if progressActivity.Valid && progressActivity.Time.After(lastActivity) {
+		lastActivity = progressActivity.Time
+	}
+
+	out := map[string]any{"evaluations": evaluations, "lastActivity": nil}
+	if !lastActivity.IsZero() {
+		out["lastActivity"] = lastActivity
+	}
+	writeJSON(w, 200, out)
 }
