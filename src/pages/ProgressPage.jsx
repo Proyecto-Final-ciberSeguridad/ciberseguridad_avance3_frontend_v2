@@ -74,7 +74,7 @@ export default function ProgressPage(){
         <div className="nav-heading">▤ <span>Módulos</span></div>
         <div className="module-links">{Object.values(modules).map(m=><button key={m.id} onClick={()=>nav(`/modulos/${m.id}`)}><i className={moduleStats(m.id).percent===100?'done-dot':''}/> <span><b>Módulo {m.id}</b><small>{m.title}</small></span></button>)}</div>
         <button className="plain-nav active" onClick={()=>nav('/progreso')}>↗ <span>Mi progreso</span></button>
-        <button className="plain-nav certificate-nav" onClick={()=>nav('/progreso#certificado')}>♙ <span>Certificado</span><small>{certificateAvailable?'Disponible':'Bloqueado'}</small></button>
+        <button className="plain-nav certificate-nav" onClick={()=>nav('/certificado')}>♙ <span>Certificado</span><small>{certificateAvailable?'Disponible':'Bloqueado'}</small></button>
       </nav>
       <div className="user-box"><div className="avatar">{user?.fullName?.split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase() || 'US'}</div><div><strong>{user?.fullName || 'Usuario'}</strong><small>Agente Público Provincial</small></div><button className="logout" onClick={logout}>Cerrar sesión</button></div>
     </aside>
@@ -114,7 +114,7 @@ export default function ProgressPage(){
       <section id="certificado" className={`certificate-status-card ${certificateAvailable?'available':''}`}>
         <div className="certificate-icon material-symbols-outlined">workspace_premium</div>
         <div className="certificate-copy"><div><h3>Certificado de finalización</h3><span>{certificateAvailable?'✓ Disponible':'🔒 Aún no disponible'}</span></div><p>{certificateAvailable?'Completaste los requisitos de la capacitación. Ya podés acceder a la sección de certificado.':'Completá los cuatro módulos y sus evaluaciones para habilitar el certificado de finalización.'}</p>{!certificateAvailable && <small>Falta completar: {pendingModules.join(', ')}.</small>}</div>
-        {certificateAvailable ? <button className="btn btn-outline" disabled>Certificado habilitado</button> : <button className="btn btn-outline" onClick={()=>nav(`/modulos/${nextPendingModule}`)}>Continuar capacitación →</button>}
+        {certificateAvailable ? <button className="btn btn-outline" onClick={()=>nav('/certificado')}>Ver certificado →</button> : <button className="btn btn-outline" onClick={()=>nav(`/modulos/${nextPendingModule}`)}>Continuar capacitación →</button>}
       </section>
     </main>
   </div>

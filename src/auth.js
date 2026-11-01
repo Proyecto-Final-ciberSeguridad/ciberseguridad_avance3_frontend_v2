@@ -2,6 +2,15 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 const SESSION_TOKEN_KEY = 'sf-capacita-token';
 const CURRENT_USER_KEY = 'sf-capacita-current-user';
 
+export class ApiError extends Error {
+  constructor(message, status = 0, kind = 'api') {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.kind = kind;
+  }
+}
+
 function saveSession(token, user) {
   localStorage.setItem(SESSION_TOKEN_KEY, token);
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
@@ -21,10 +30,21 @@ export async function api(path, options = {}) {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch {
+    throw new ApiError(
+      'No pudimos conectar con el servicio. Verificá que el backend y la base de datos estén disponibles e intentá nuevamente.',
+      0,
+      'network',
+    );
+  }
+
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(body.error || 'No se pudo completar la operación.');
+    const kind = response.status >= 500 ? 'service' : 'api';
+    throw new ApiError(body.error || 'No se pudo completar la operación.', response.status, kind);
   }
   return body;
 }
@@ -64,9 +84,15 @@ export async function refreshCurrentUser() {
     const body = await api('/auth/me');
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(body.user));
     return body.user;
-  } catch {
-    clearSession();
-    return null;
+  } catch (err) {
+    // Solo eliminamos la sesión cuando el backend confirma que el token ya no es válido.
+    // Si el backend o PostgreSQL están caídos, conservamos la sesión local para poder
+    // retomarla cuando el servicio vuelva a estar disponible.
+    if (err?.status === 401 || err?.status === 403) {
+      clearSession();
+      return null;
+    }
+    throw err;
   }
 }
 
@@ -93,4 +119,25 @@ export async function resetPassword(token, newPassword) {
     method: 'POST',
     body: JSON.stringify({ token, newPassword }),
   });
+}
+
+
+export async function downloadAuthenticatedFile(path, filename) {
+  const token = getToken();
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || 'No se pudo generar el archivo.');
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }

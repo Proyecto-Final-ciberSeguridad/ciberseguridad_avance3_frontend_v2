@@ -142,3 +142,41 @@ Para probarla, con frontend y backend levantados, ingresar a:
 `http://localhost:5173/progreso`
 
 El enlace **Certificado** lleva por ahora al estado del certificado dentro de Mi progreso. La pantalla independiente y la generación del PDF se implementarán en el siguiente incremento.
+
+## Avance 3 v7 — Certificado funcional
+
+Se incorporó una pantalla independiente `/certificado`, basada en el diseño preliminar de Stitch pero conectada al backend real.
+
+### Estados
+- **Bloqueado:** si falta al menos un recurso requerido de alguno de los cuatro módulos.
+- **Habilitado:** únicamente cuando los cuatro módulos están completos.
+
+La verificación se realiza nuevamente en el backend. El frontend por sí solo no puede habilitar ni descargar el certificado.
+
+### PDF
+El endpoint autenticado `GET /api/certificate/pdf` genera el certificado en PDF en el momento de la descarga. Incluye:
+- nombre completo del usuario;
+- DNI;
+- nombre de la capacitación;
+- los cuatro módulos completados;
+- fecha real de finalización calculada a partir del progreso persistido.
+
+No incluye firmas, autoridades, resoluciones, horas académicas ni validez administrativa no definidas en el proyecto.
+
+### Dependencia nueva de Go
+Esta versión agrega `github.com/jung-kurt/gofpdf` para generar el PDF. Después de copiar la v7 sobre el proyecto local ejecutar una vez:
+
+```powershell
+cd backend
+go mod tidy
+```
+
+No requiere una migración nueva de PostgreSQL.
+
+
+## Ajuste de autenticación — v8
+
+- El login diferencia credenciales incorrectas (401) de indisponibilidad del backend/base de datos (503 o error de red).
+- Una caída temporal del backend/PostgreSQL ya no elimina la sesión guardada en el navegador.
+- La sesión solo se limpia cuando el backend confirma que el token es inválido o venció (401/403), al cerrar sesión o al cambiar la contraseña.
+- Si el servicio no está disponible al validar una sesión existente, se muestra una pantalla de reintento y se conserva el token local.

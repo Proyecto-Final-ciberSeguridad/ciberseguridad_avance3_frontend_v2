@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jung-kurt/gofpdf"
 
 	"santa-fe-capacita-backend/internal/auth"
 	"santa-fe-capacita-backend/internal/database"
@@ -53,6 +56,8 @@ func main() {
 	mux.HandleFunc("GET /api/training-summary", a.trainingSummary)
 	mux.HandleFunc("PUT /api/progress/{module}/{resource}", a.putProgress)
 	mux.HandleFunc("POST /api/evaluations/{module}", a.saveEvaluation)
+	mux.HandleFunc("GET /api/certificate/status", a.certificateStatus)
+	mux.HandleFunc("GET /api/certificate/pdf", a.certificatePDF)
 
 	srv := &http.Server{Addr: ":" + port, Handler: a.cors(mux), ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("API Santa Fe Capacita escuchando en http://localhost:%s", port)
@@ -142,7 +147,7 @@ func (a *app) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		log.Printf("login: %v", err)
-		writeJSON(w, 500, apiError{"No se pudo iniciar sesión."})
+		writeJSON(w, 503, apiError{"El servicio de acceso no está disponible temporalmente. Intentá nuevamente."})
 		return
 	}
 	writeJSON(w, 200, map[string]any{"token": token, "user": user})
@@ -385,4 +390,201 @@ func (a *app) trainingSummary(w http.ResponseWriter, r *http.Request) {
 		out["lastActivity"] = lastActivity
 	}
 	writeJSON(w, 200, out)
+}
+
+type certificateModuleStatus struct {
+	ID                 int    `json:"id"`
+	Title              string `json:"title"`
+	Completed          bool   `json:"completed"`
+	CompletedResources int    `json:"completedResources"`
+	TotalResources     int    `json:"totalResources"`
+}
+
+type certificateState struct {
+	Available        bool                      `json:"available"`
+	CompletedModules int                       `json:"completedModules"`
+	CompletionDate   *time.Time                `json:"completionDate"`
+	Modules          []certificateModuleStatus `json:"modules"`
+}
+
+var certificateRequirements = []struct {
+	ID        int
+	Title     string
+	Resources []string
+}{
+	{1, "Introducción a la Seguridad Digital", []string{"teoria", "video", "actividad", "evaluacion"}},
+	{2, "Identificación de Riesgos", []string{"teoria-2a", "teoria-2b", "teoria-2c", "teoria-2d", "teoria-2e", "teoria-2f", "video", "actividad", "evaluacion"}},
+	{3, "Detección y respuesta ante incidentes", []string{"teoria", "video", "actividad", "evaluacion"}},
+	{4, "Cierre y Verificación", []string{"teoria", "video", "actividad", "evaluacion"}},
+}
+
+func (a *app) certificateStateForUser(r *http.Request, user auth.User) (certificateState, error) {
+	rows, err := a.db.QueryContext(r.Context(), `
+		SELECT module_id, resource_key, completed, completed_at
+		FROM training_progress
+		WHERE user_id=$1`, user.ID)
+	if err != nil {
+		return certificateState{}, err
+	}
+	defer rows.Close()
+
+	type item struct {
+		completed bool
+		at        sql.NullTime
+	}
+	progress := map[int]map[string]item{}
+	for rows.Next() {
+		var moduleID int
+		var key string
+		var completed bool
+		var at sql.NullTime
+		if err := rows.Scan(&moduleID, &key, &completed, &at); err != nil {
+			return certificateState{}, err
+		}
+		if progress[moduleID] == nil {
+			progress[moduleID] = map[string]item{}
+		}
+		progress[moduleID][key] = item{completed: completed, at: at}
+	}
+	if err := rows.Err(); err != nil {
+		return certificateState{}, err
+	}
+
+	state := certificateState{Modules: make([]certificateModuleStatus, 0, 4)}
+	var latest time.Time
+	for _, req := range certificateRequirements {
+		completedCount := 0
+		moduleComplete := true
+		for _, key := range req.Resources {
+			it, ok := progress[req.ID][key]
+			if ok && it.completed {
+				completedCount++
+				if it.at.Valid && it.at.Time.After(latest) {
+					latest = it.at.Time
+				}
+			} else {
+				moduleComplete = false
+			}
+		}
+		if moduleComplete {
+			state.CompletedModules++
+		}
+		state.Modules = append(state.Modules, certificateModuleStatus{
+			ID: req.ID, Title: req.Title, Completed: moduleComplete,
+			CompletedResources: completedCount, TotalResources: len(req.Resources),
+		})
+	}
+	state.Available = state.CompletedModules == 4
+	if state.Available && !latest.IsZero() {
+		completion := latest
+		state.CompletionDate = &completion
+	}
+	return state, nil
+}
+
+func (a *app) certificateStatus(w http.ResponseWriter, r *http.Request) {
+	user, err := a.authenticatedUser(r)
+	if err != nil {
+		writeJSON(w, 401, apiError{"Sesión no válida o vencida."})
+		return
+	}
+	state, err := a.certificateStateForUser(r, user)
+	if err != nil {
+		log.Printf("certificate status: %v", err)
+		writeJSON(w, 500, apiError{"No se pudo consultar el estado del certificado."})
+		return
+	}
+	writeJSON(w, 200, state)
+}
+
+func (a *app) certificatePDF(w http.ResponseWriter, r *http.Request) {
+	user, err := a.authenticatedUser(r)
+	if err != nil {
+		writeJSON(w, 401, apiError{"Sesión no válida o vencida."})
+		return
+	}
+	state, err := a.certificateStateForUser(r, user)
+	if err != nil {
+		log.Printf("certificate pdf status: %v", err)
+		writeJSON(w, 500, apiError{"No se pudo verificar el progreso de la capacitación."})
+		return
+	}
+	if !state.Available || state.CompletionDate == nil {
+		writeJSON(w, 403, apiError{"El certificado todavía no está disponible. Completá los cuatro módulos para habilitarlo."})
+		return
+	}
+
+	pdf := gofpdf.New("L", "mm", "A4", "")
+	pdf.SetMargins(20, 18, 20)
+	pdf.SetAutoPageBreak(false, 0)
+	pdf.AddPage()
+	tr := pdf.UnicodeTranslatorFromDescriptor("")
+
+	pdf.SetDrawColor(0, 74, 152)
+	pdf.SetLineWidth(1.0)
+	pdf.Rect(12, 12, 273, 186, "D")
+	pdf.SetLineWidth(0.3)
+	pdf.SetDrawColor(176, 192, 211)
+	pdf.Rect(16, 16, 265, 178, "D")
+
+	pdf.SetTextColor(0, 52, 110)
+	pdf.SetFont("Helvetica", "B", 18)
+	pdf.CellFormat(0, 12, tr("Santa Fe Capacita"), "", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetTextColor(75, 86, 102)
+	pdf.CellFormat(0, 6, tr("Capacitación de ciberseguridad"), "", 1, "C", false, 0, "")
+
+	pdf.Ln(8)
+	pdf.SetTextColor(0, 52, 110)
+	pdf.SetFont("Helvetica", "B", 28)
+	pdf.CellFormat(0, 16, tr("Certificado de finalización"), "", 1, "C", false, 0, "")
+	pdf.Ln(4)
+
+	pdf.SetFont("Helvetica", "", 12)
+	pdf.SetTextColor(80, 90, 105)
+	pdf.CellFormat(0, 8, tr("Se deja constancia de que"), "", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "B", 23)
+	pdf.SetTextColor(16, 47, 85)
+	pdf.CellFormat(0, 13, tr(user.FullName), "", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "", 11)
+	pdf.SetTextColor(80, 90, 105)
+	pdf.CellFormat(0, 7, tr("DNI "+user.DNI), "", 1, "C", false, 0, "")
+
+	pdf.Ln(6)
+	pdf.SetFont("Helvetica", "", 12)
+	pdf.CellFormat(0, 8, tr("ha completado la"), "", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "B", 16)
+	pdf.SetTextColor(0, 52, 110)
+	pdf.MultiCell(0, 8, tr("Capacitación de ciberseguridad para empleados públicos de Santa Fe"), "", "C", false)
+
+	pdf.Ln(6)
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetTextColor(75, 86, 102)
+	pdf.MultiCell(0, 6, tr("Módulos completados: Introducción a la Seguridad Digital · Identificación de Riesgos · Detección y respuesta ante incidentes · Cierre y Verificación"), "", "C", false)
+
+	pdf.Ln(10)
+	pdf.SetFont("Helvetica", "", 10)
+	pdf.SetTextColor(80, 90, 105)
+	pdf.CellFormat(0, 6, tr("Fecha de finalización"), "", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "B", 12)
+	pdf.SetTextColor(30, 45, 65)
+	pdf.CellFormat(0, 8, state.CompletionDate.In(time.Local).Format("02/01/2006"), "", 1, "C", false, 0, "")
+
+	pdf.SetY(184)
+	pdf.SetFont("Helvetica", "", 8)
+	pdf.SetTextColor(105, 113, 125)
+	pdf.CellFormat(0, 5, tr("Certificado de finalización generado por la plataforma Santa Fe Capacita."), "", 0, "C", false, 0, "")
+
+	var buf bytes.Buffer
+	if err := pdf.Output(&buf); err != nil {
+		log.Printf("generate certificate pdf: %v", err)
+		writeJSON(w, 500, apiError{"No se pudo generar el certificado en PDF."})
+		return
+	}
+	filename := "certificado-santa-fe-capacita.pdf"
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(buf.Bytes())
 }

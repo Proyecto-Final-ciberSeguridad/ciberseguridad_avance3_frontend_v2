@@ -20,7 +20,7 @@ export default function Dashboard(){
         <div className="nav-heading">▤ <span>Módulos</span></div>
         <div className="module-links">{modules.map(m=><button key={m.id} onClick={()=>nav(`/modulos/${m.id}`)}><i/> <span><b>Módulo {m.id}</b><small>{m.title}</small></span></button>)}</div>
         <button className="plain-nav" onClick={()=>nav('/progreso')}>↗ <span>Mi progreso</span></button>
-        <button className="plain-nav" onClick={()=>nav('/progreso#certificado')}>♙ <span>Certificado</span></button>
+        <button className="plain-nav" onClick={()=>nav('/certificado')}>♙ <span>Certificado</span></button>
       </nav>
       <div className="user-box"><div className="avatar">{user?.fullName?.split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase() || 'US'}</div><div><strong>{user?.fullName || 'Usuario'}</strong><small>Agente Público Provincial</small></div><button className="logout" onClick={logout}>Cerrar sesión</button></div>
     </aside>

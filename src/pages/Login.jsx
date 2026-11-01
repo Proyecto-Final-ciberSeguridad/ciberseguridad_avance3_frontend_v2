@@ -21,7 +21,13 @@ export default function Login() {
       await loginUser(email, password);
       nav('/inicio');
     } catch (err) {
-      setError(err.message);
+      if (err?.status === 401) {
+        setError('Correo o contraseña incorrectos.');
+      } else if (err?.kind === 'network' || err?.kind === 'service' || err?.status >= 500) {
+        setError('No pudimos conectarnos al servicio de acceso. Verificá que el servidor esté disponible e intentá nuevamente.');
+      } else {
+        setError(err?.message || 'No se pudo iniciar sesión.');
+      }
     } finally {
       setLoading(false);
     }

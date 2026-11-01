@@ -13,6 +13,7 @@ import Module1Activity from './pages/Module1Activity';
 import Module1Evaluation from './pages/Module1Evaluation';
 import SessionGuard from './components/SessionGuard';
 import ProgressPage from './pages/ProgressPage';
+import CertificatePage from './pages/CertificatePage';
 
 export default function App(){
   return <Routes>
@@ -23,6 +24,7 @@ export default function App(){
     <Route path="/restablecer-contrasena" element={<ResetPassword/>}/>
     <Route path="/inicio" element={<SessionGuard><Dashboard/></SessionGuard>}/>
     <Route path="/progreso" element={<SessionGuard><ProgressPage/></SessionGuard>}/>
+    <Route path="/certificado" element={<SessionGuard><CertificatePage/></SessionGuard>}/>
     <Route path="/modulos/:id" element={<SessionGuard><ModulePage/></SessionGuard>}/>
     <Route path="/modulos/1/teoria" element={<SessionGuard><Module1Theory/></SessionGuard>}/>
     <Route path="/modulos/1/video" element={<SessionGuard><Module1Video/></SessionGuard>}/>
