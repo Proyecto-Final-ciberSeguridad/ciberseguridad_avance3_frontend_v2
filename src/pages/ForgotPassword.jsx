@@ -30,7 +30,7 @@ export default function ForgotPassword(){
         {!result ? <>
           <h1>Olvidé mi contraseña</h1>
           <p>Ingresá tu correo institucional para recibir las instrucciones de recuperación.</p>
-          <label>Correo institucional <b>*</b><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nombre.apellido@santafe.gov.ar" /></label>
+          <label><span>Correo institucional <b>*</b></span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nombre.apellido@santafe.gov.ar" /></label>
           {error && <div className="error-box">{error}</div>}
           <button className="btn btn-primary full" disabled={loading}>{loading?'Generando recuperación...':'Enviar instrucciones'}</button>
           <div className="auth-bottom"><Link to="/login">← Volver a iniciar sesión</Link></div>
