@@ -37,7 +37,6 @@ export default function ForgotPassword(){
         </> : <>
           <h1>Revisá tu correo</h1>
           <p>Si existe una cuenta asociada al correo ingresado, recibirás las instrucciones para restablecer tu contraseña.</p>
-          {result.devResetUrl && <div className="dev-reset-box"><strong>Modo desarrollo</strong><span>Para probar el flujo local sin servidor de correo, usá este enlace temporal:</span><a href={result.devResetUrl}>Restablecer contraseña</a><small>Este enlace solo se devuelve cuando el backend está en modo desarrollo.</small></div>}
           <Link className="btn btn-primary full" to="/login">Volver a iniciar sesión</Link>
         </>}
       </form>

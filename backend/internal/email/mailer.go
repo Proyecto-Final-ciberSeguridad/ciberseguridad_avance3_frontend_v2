@@ -38,7 +38,11 @@ func NewMailer(cfg Config) *Mailer {
 }
 
 func (m *Mailer) SendPasswordReset(toEmail, resetURL string) error {
-	subject := "Recuperación de contraseña - Santa Fe Capacita"
+	now := time.Now()
+	timeTag := now.Format("15:04:05")
+	subject := fmt.Sprintf("Recuperación de contraseña [%s] - Santa Fe Capacita", timeTag)
+	messageID := fmt.Sprintf("<%d.%06d@santafe.capacita.gob.ar>", now.Unix(), now.Nanosecond()%1000000)
+
 	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -86,9 +90,10 @@ func (m *Mailer) SendPasswordReset(toEmail, resetURL string) error {
 	msg := strings.Builder{}
 	msg.WriteString(fmt.Sprintf("From: %s\r\n", m.cfg.From))
 	msg.WriteString(fmt.Sprintf("To: %s\r\n", toEmail))
+	msg.WriteString(fmt.Sprintf("Message-ID: %s\r\n", messageID))
 	encodedSubject := base64.StdEncoding.EncodeToString([]byte(subject))
 	msg.WriteString(fmt.Sprintf("Subject: =?UTF-8?B?%s?=\r\n", encodedSubject))
-	msg.WriteString(fmt.Sprintf("Date: %s\r\n", time.Now().Format(time.RFC1123Z)))
+	msg.WriteString(fmt.Sprintf("Date: %s\r\n", now.Format(time.RFC1123Z)))
 	msg.WriteString("MIME-Version: 1.0\r\n")
 	msg.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
 	msg.WriteString("Content-Transfer-Encoding: 8bit\r\n\r\n")

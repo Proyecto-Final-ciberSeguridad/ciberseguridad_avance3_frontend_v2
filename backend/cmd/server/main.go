@@ -247,11 +247,15 @@ func (a *app) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 400, apiError{"Solicitud inválida."})
 		return
 	}
+	log.Printf("[AUTH] forgot-password solicitado para: %s", in.Email)
 	resetURL, err := a.auth.RequestPasswordReset(r.Context(), in.Email)
 	if err != nil {
-		log.Printf("forgot password: %v", err)
+		log.Printf("[AUTH] forgot password error: %v", err)
 		writeJSON(w, 500, apiError{"No se pudo procesar la recuperación."})
 		return
+	}
+	if resetURL == "" {
+		log.Printf("[AUTH] forgot-password: no existe usuario con email %s (respuesta genérica)", in.Email)
 	}
 	out := map[string]any{"message": "Si existe una cuenta asociada al correo ingresado, recibirás las instrucciones para restablecer tu contraseña."}
 	if resetURL != "" {
@@ -273,8 +277,7 @@ func (a *app) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		}(in.Email, finalResetURL)
 
 		if a.auth.Development {
-			out["devResetUrl"] = finalResetURL
-			log.Printf("enlace de recuperación (desarrollo): %s", finalResetURL)
+			log.Printf("[DEV] enlace de recuperación generado: %s", finalResetURL)
 		}
 	}
 	writeJSON(w, 200, out)
@@ -292,14 +295,16 @@ func (a *app) resetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	err := a.auth.ResetPassword(r.Context(), strings.TrimSpace(in.Token), in.NewPassword)
 	if errors.Is(err, auth.ErrInvalidResetToken) {
+		log.Printf("[AUTH] reset-password rechazado: token inválido o vencido")
 		writeJSON(w, 400, apiError{err.Error()})
 		return
 	}
 	if err != nil {
-		log.Printf("reset password: %v", err)
+		log.Printf("[AUTH] reset password error: %v", err)
 		writeJSON(w, 500, apiError{"No se pudo actualizar la contraseña."})
 		return
 	}
+	log.Printf("[AUTH] reset-password exitoso: contraseña actualizada correctamente")
 	writeJSON(w, 200, map[string]bool{"ok": true})
 }
 
