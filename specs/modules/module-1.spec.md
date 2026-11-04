@@ -30,16 +30,24 @@ flowchart LR
 ## 3. Contenido de los Recursos
 
 ### 3.1 Material Teórico (`teoria`)
-* **Formato:** 3 bloques temáticos estructurados con infografías:
-  1. *Qué es la seguridad digital y por qué importa en el Estado provincial.*
-  2. *Los tres pilares esenciales: Confidencialidad, Integridad y Disponibilidad (Tríada CIA).*
-  3. *Regla operativa básica: Reconocer → Detenerse → Verificar → Reportar.*
-* **Infografías:** Ubicadas en `public/assets/module1/` (`infografia1.svg`, `infografia2.svg`, `infografia3.svg`).
+* **Formato web interactivo:** 4 bloques temáticos estructurados con infografías y recordatorio final:
+  1. *La seguridad digital también es parte de tu trabajo.*
+  2. *¿Qué es la ciberseguridad? (Tríada CIA: Confidencialidad, Integridad y Disponibilidad).*
+  3. *Riesgos y buenas prácticas cotidianas.*
+  4. *Antes de actuar: cuatro pasos simples (Reconocer → Detenerse → Verificar → Reportar).*
+* **Infografías y figuras:** Ubicadas en `public/assets/module1/` (`seguridad-digital.png`, `cuatro-controles.png`, `antes-de-actuar.png`).
+* **Documento oficial descargable:**
+  * Archivo: `public/assets/module1/material-teorico-modulo-1.pdf` (documento pedagógico completo, 9 páginas, formato A4, 4.4 MB).
+  * Funcionalidad: Permite lectura offline, impresión y visualización directa integrada desde `Module1Theory.jsx`.
 
 ### 3.2 Recurso Audiovisual (`video`)
-* **Archivo:** `public/assets/module1/video-modulo1.mp4` (o reproductor integrado).
-* **Duración:** ~2 minutos (cumple RNF < 5 min).
-* **Contenido:** Síntesis animada de los 3 pilares y llamada a la acción para desconfiar de mensajes con urgencia artificial.
+* **Archivos:**
+  * `public/assets/module1/videomodulo1.mp4`: *Parte 1 — Ciberseguridad en el Trabajo* (Síntesis conceptual, duración ~5:12 min).
+  * `public/assets/module1/videomodulo1despues.mp4`: *Parte 2 — Regla de los Cuatro Pasos: Antes de actuar* (Pauta práctica preventiva, duración ~1:27 min).
+* **Duración total:** ~6:39 minutos distribuidos en dos bloques didácticos independientes.
+* **Contenido:**
+  1. Síntesis animada de la tríada CIA, protección de activos digitales y hábitos seguros.
+  2. Aplicación paso a paso de los 4 controles preventivos antes de actuar frente a comunicaciones sospechosas.
 
 ### 3.3 Actividad Práctica Interactiva (`actividad`)
 Consta de **3 situaciones simuladas** basadas en incidentes reales de oficinas públicas:

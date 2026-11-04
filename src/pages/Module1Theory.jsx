@@ -72,6 +72,50 @@ export default function Module1Theory(){
         <p>No hace falta conocer todas las amenazas. Una pausa breve, una verificación y un reporte oportuno pueden evitar que una situación dudosa se transforme en un incidente.</p>
       </section>
 
+      {/* Tarjeta de consulta y descarga del documento teórico oficial */}
+      <section className="theory-download-card">
+        <div className="theory-download-content">
+          <div className="theory-download-icon">
+            <span className="material-symbols-outlined">menu_book</span>
+          </div>
+          <div className="theory-download-info">
+            <span className="theory-download-badge">DOCUMENTO PEDAGÓGICO OFICIAL</span>
+            <h2>Material teórico completo en PDF</h2>
+            <p>
+              Podés consultar o descargar el documento completo del Módulo 1 en formato PDF (9 páginas) para lectura sin conexión, impresión o archivo de consulta laboral.
+            </p>
+            <div className="theory-download-meta">
+              <span>📄 Documento PDF oficial</span>
+              <span>•</span>
+              <span>9 páginas</span>
+              <span>•</span>
+              <span>4.4 MB</span>
+            </div>
+          </div>
+        </div>
+        <div className="theory-download-actions">
+          <a
+            className="btn btn-primary"
+            href="/assets/module1/material-teorico-modulo-1.pdf"
+            download="Modulo-1-Introduccion-a-la-Seguridad-Digital.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="material-symbols-outlined">download</span>
+            Descargar PDF
+          </a>
+          <a
+            className="btn btn-outline"
+            href="/assets/module1/material-teorico-modulo-1.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="material-symbols-outlined">visibility</span>
+            Ver en línea
+          </a>
+        </div>
+      </section>
+
       <details className="source-details"><summary>Fuentes consultadas para este módulo</summary><ul>
         <li>NIST — Building an Information Technology Security Awareness and Training Program.</li>
         <li>NIST — Security Awareness and Training for the Workforce.</li>
