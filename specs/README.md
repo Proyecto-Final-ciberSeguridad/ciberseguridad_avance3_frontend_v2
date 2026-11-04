@@ -38,7 +38,7 @@ specs/
 ## 🚀 Flujo para Crear un Nuevo Módulo (Módulo 2, 3 o 4)
 
 ### Opción A: Usando la Skill con Asistente IA (Antigravity / Gemini)
-Cualquier integrante del equipo que clone el repositorio tiene la skill integrada automáticamente en el workspace (`skills/sdd-module-creator` o `.agents/skills/sdd-module-creator`).
+Cualquier integrante del equipo que clone el repositorio tiene la skill integrada automáticamente en el workspace (`.agents/skills/sdd-module-creator`).
 Simplemente puede pedirle al asistente:
 > *"Quiero crear el Módulo 2 usando la skill de SDD"*
 El asistente:
