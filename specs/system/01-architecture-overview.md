@@ -20,20 +20,27 @@ flowchart TD
         AuthSvc["Auth Service\n(Bcrypt / Token SHA-256)"]
         ProgSvc["Progress & Summary Engine"]
         CertSvc["Certificate PDF Generator\n(gofpdf)"]
+        MailSvc["Mailer Service\n(net/smtp / HTML)"]
         
         Router --> AuthSvc
         Router --> ProgSvc
         Router --> CertSvc
+        AuthSvc --> MailSvc
     end
 
     subgraph Persistencia["PostgreSQL (:5432)"]
         DB[(santa_fe_capacita)]
     end
 
+    subgraph Correo["Servidor SMTP"]
+        SMTP[("SMTP Server\n(Mailpit / Brevo / Zimbra)")]
+    end
+
     UI -- "REST / JSON (HTTPS/HTTP)\nBearer Token" --> Router
     AuthSvc --> DB
     ProgSvc --> DB
     CertSvc --> DB
+    MailSvc -- "SMTP / STARTTLS\n(:1025 / :587)" --> SMTP
 ```
 
 ---
@@ -47,6 +54,7 @@ flowchart TD
 | **Backend** | Go (Golang) 1.22+ | Alto rendimiento y concurrencia liviana nativa (Goroutines), binario único compilado sin dependencias externas pesadas, bajo consumo de memoria RAM (ideal para entornos con recursos acotados como servidores provinciales o microservidores). |
 | **Base de Datos**| PostgreSQL 15+ | Cumplimiento estricto de integridad referencial, índices compuestos para búsquedas eficientes de progreso, y soporte para campos `JSONB` que permiten almacenar respuestas de evaluaciones con esquema flexible sin romper la normalización. |
 | **Generación PDF**| `github.com/jung-kurt/gofpdf` | Generación directa en el backend en memoria (`bytes.Buffer`), garantizando que la emisión del certificado sea inmutable y no dependa de librerías cliente en el navegador que puedan ser manipuladas. |
+| **Servicio de Correo** | `net/smtp` estándar | Envío de correos transaccionales (recuperación de contraseña) desacoplado de proveedores propietarios; soporta servidores locales de prueba (Mailpit en `:1025`) y servidores SMTP de producción (`:587` / STARTTLS) vía variables de entorno. |
 
 ---
 

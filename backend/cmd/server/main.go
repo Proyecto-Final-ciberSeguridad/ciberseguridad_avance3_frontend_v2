@@ -17,11 +17,13 @@ import (
 
 	"santa-fe-capacita-backend/internal/auth"
 	"santa-fe-capacita-backend/internal/database"
+	"santa-fe-capacita-backend/internal/email"
 )
 
 type app struct {
 	db            *sql.DB
 	auth          *auth.Service
+	mailer        *email.Mailer
 	allowedOrigin string
 }
 
@@ -43,7 +45,32 @@ func main() {
 	}
 	defer db.Close()
 
-	a := &app{db: db, allowedOrigin: frontendURL, auth: &auth.Service{DB: db, SessionTTL: time.Duration(sessionHours) * time.Hour, ResetTTL: time.Duration(resetMinutes) * time.Minute, FrontendURL: frontendURL, Development: development}}
+	smtpHost := env("SMTP_HOST", "localhost")
+	smtpPort := envInt("SMTP_PORT", 1025)
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
+	smtpFrom := env("SMTP_FROM", "Santa Fe Capacita <no-reply@santafe.gov.ar>")
+
+	mailer := email.NewMailer(email.Config{
+		Host:     smtpHost,
+		Port:     smtpPort,
+		User:     smtpUser,
+		Password: smtpPass,
+		From:     smtpFrom,
+	})
+
+	a := &app{
+		db:            db,
+		allowedOrigin: frontendURL,
+		mailer:        mailer,
+		auth: &auth.Service{
+			DB:          db,
+			SessionTTL:  time.Duration(sessionHours) * time.Hour,
+			ResetTTL:    time.Duration(resetMinutes) * time.Minute,
+			FrontendURL: frontendURL,
+			Development: development,
+		},
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", a.health)
 	mux.HandleFunc("POST /api/auth/register", a.register)
@@ -200,15 +227,28 @@ func (a *app) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out := map[string]any{"message": "Si existe una cuenta asociada al correo ingresado, recibirás las instrucciones para restablecer tu contraseña."}
-	if a.auth.Development && resetURL != "" {
+	if resetURL != "" {
+		finalResetURL := resetURL
 		if origin := strings.TrimRight(r.Header.Get("Origin"), "/"); origin != "" {
 			frontendBase := strings.TrimRight(a.auth.FrontendURL, "/")
-			if strings.HasPrefix(resetURL, frontendBase) {
-				resetURL = origin + strings.TrimPrefix(resetURL, frontendBase)
+			if strings.HasPrefix(finalResetURL, frontendBase) {
+				finalResetURL = origin + strings.TrimPrefix(finalResetURL, frontendBase)
 			}
 		}
-		out["devResetUrl"] = resetURL
-		log.Printf("enlace de recuperación (desarrollo): %s", resetURL)
+
+		// Enviar correo transaccional vía SMTP (en goroutine para respuesta inmediata)
+		go func(dest, url string) {
+			if err := a.mailer.SendPasswordReset(dest, url); err != nil {
+				log.Printf("[MAILER] error enviando correo a %s: %v", dest, err)
+			} else {
+				log.Printf("[MAILER] correo de recuperación enviado exitosamente a %s", dest)
+			}
+		}(in.Email, finalResetURL)
+
+		if a.auth.Development {
+			out["devResetUrl"] = finalResetURL
+			log.Printf("enlace de recuperación (desarrollo): %s", finalResetURL)
+		}
 	}
 	writeJSON(w, 200, out)
 }
