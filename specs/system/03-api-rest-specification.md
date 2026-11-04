@@ -2,7 +2,8 @@
 
 ## 1. Convenciones Globales
 
-* **Base URL:** `http://localhost:8080/api` (o vía variable de entorno `VITE_API_URL`).
+* **Base URL:** `/api` por defecto (enrutado mediante proxy de Vite o servidor web hacia `http://127.0.0.1:8080/api`), o sobreescribible vía variable de entorno `VITE_API_URL`.
+* **CORS y Orígenes:** En entorno de producción (`APP_ENV=production`) se valida estrictamente contra `FRONTEND_URL`. En entorno de desarrollo (`APP_ENV=development`), se admite también el origen dinámico (`Origin` / `Referer`) para permitir pruebas en red local (LAN / Tailscale) y construir el enlace `devResetUrl` con el host desde el que opera el usuario.
 * **Formato de intercambio:** `application/json; charset=utf-8`.
 * **Autenticación:** Cabecera HTTP `Authorization: Bearer <token_hex>`.
 * **Estructura de error unificada:**
@@ -82,17 +83,18 @@ Valida la sesión y retorna los datos del agente autenticado.
 ---
 
 ### `POST /api/auth/forgot-password`
-Inicia el flujo de recuperación de contraseña generando un token temporal (TTL: 30 min).
+Inicia el flujo de recuperación de contraseña generando un token temporal (TTL: 30 min) y despachando el correo institucional vía SMTP.
 * **Request:** `{"email": "agente@santafe.gov.ar"}`
+* **Efecto colateral:** Si el correo existe, el backend envía un correo HTML transaccional mediante el servicio SMTP configurado (`SMTP_HOST`, `SMTP_PORT`).
 * **Responses:**
   * `200 OK`:
     ```json
     {
-      "message": "Si el correo está registrado, recibirás un enlace de recuperación.",
+      "message": "Si existe una cuenta asociada al correo ingresado, recibirás las instrucciones para restablecer tu contraseña.",
       "devResetUrl": "http://localhost:5173/restablecer-contrasena?token=..."
     }
     ```
-  *(Nota: `devResetUrl` solo se expone en entorno `APP_ENV=development`).*
+  *(Nota: `devResetUrl` solo se incluye en la respuesta JSON cuando `APP_ENV=development` como mecanismo de asistencia en pruebas locales).*
 
 ---
 

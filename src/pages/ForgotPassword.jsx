@@ -30,14 +30,13 @@ export default function ForgotPassword(){
         {!result ? <>
           <h1>Olvidé mi contraseña</h1>
           <p>Ingresá tu correo institucional para recibir las instrucciones de recuperación.</p>
-          <label>Correo institucional <b>*</b><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nombre.apellido@santafe.gov.ar" /></label>
+          <label><span>Correo institucional <b>*</b></span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nombre.apellido@santafe.gov.ar" /></label>
           {error && <div className="error-box">{error}</div>}
           <button className="btn btn-primary full" disabled={loading}>{loading?'Generando recuperación...':'Enviar instrucciones'}</button>
           <div className="auth-bottom"><Link to="/login">← Volver a iniciar sesión</Link></div>
         </> : <>
           <h1>Revisá tu correo</h1>
           <p>Si existe una cuenta asociada al correo ingresado, recibirás las instrucciones para restablecer tu contraseña.</p>
-          {result.devResetUrl && <div className="dev-reset-box"><strong>Modo desarrollo</strong><span>Para probar el flujo local sin servidor de correo, usá este enlace temporal:</span><a href={result.devResetUrl}>Restablecer contraseña</a><small>Este enlace solo se devuelve cuando el backend está en modo desarrollo.</small></div>}
           <Link className="btn btn-primary full" to="/login">Volver a iniciar sesión</Link>
         </>}
       </form>

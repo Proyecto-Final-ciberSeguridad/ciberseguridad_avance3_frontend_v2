@@ -31,8 +31,8 @@ export default function ResetPassword(){
         {!done ? <>
           <h1>Crear nueva contraseña</h1>
           <p>Definí una nueva contraseña para tu cuenta.</p>
-          <label>Nueva contraseña <b>*</b><div className="password-wrap"><input type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mínimo 8 caracteres"/><button type="button" onClick={()=>setShow(v=>!v)}><span className="material-symbols-outlined">visibility</span></button></div></label>
-          <label>Confirmar nueva contraseña <b>*</b><input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Repetí la nueva contraseña"/></label>
+          <label><span>Nueva contraseña <b>*</b></span><div className="password-wrap"><input type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mínimo 8 caracteres"/><button type="button" onClick={()=>setShow(v=>!v)}><span className="material-symbols-outlined">visibility</span></button></div></label>
+          <label><span>Confirmar nueva contraseña <b>*</b></span><input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Repetí la nueva contraseña"/></label>
           {error && <div className="error-box">{error}</div>}
           <button className="btn btn-primary full" disabled={loading}>{loading?'Actualizando...':'Guardar nueva contraseña'}</button>
         </> : <>

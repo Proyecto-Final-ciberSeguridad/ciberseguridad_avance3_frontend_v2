@@ -20,20 +20,27 @@ flowchart TD
         AuthSvc["Auth Service\n(Bcrypt / Token SHA-256)"]
         ProgSvc["Progress & Summary Engine"]
         CertSvc["Certificate PDF Generator\n(gofpdf)"]
+        MailSvc["Mailer Service\n(net/smtp / HTML)"]
         
         Router --> AuthSvc
         Router --> ProgSvc
         Router --> CertSvc
+        AuthSvc --> MailSvc
     end
 
     subgraph Persistencia["PostgreSQL (:5432)"]
         DB[(santa_fe_capacita)]
     end
 
+    subgraph Correo["Servidor SMTP"]
+        SMTP[("SMTP Server\n(Mailpit / Brevo / Zimbra)")]
+    end
+
     UI -- "REST / JSON (HTTPS/HTTP)\nBearer Token" --> Router
     AuthSvc --> DB
     ProgSvc --> DB
     CertSvc --> DB
+    MailSvc -- "SMTP / STARTTLS\n(:1025 / :587)" --> SMTP
 ```
 
 ---
@@ -47,6 +54,7 @@ flowchart TD
 | **Backend** | Go (Golang) 1.22+ | Alto rendimiento y concurrencia liviana nativa (Goroutines), binario único compilado sin dependencias externas pesadas, bajo consumo de memoria RAM (ideal para entornos con recursos acotados como servidores provinciales o microservidores). |
 | **Base de Datos**| PostgreSQL 15+ | Cumplimiento estricto de integridad referencial, índices compuestos para búsquedas eficientes de progreso, y soporte para campos `JSONB` que permiten almacenar respuestas de evaluaciones con esquema flexible sin romper la normalización. |
 | **Generación PDF**| `github.com/jung-kurt/gofpdf` | Generación directa en el backend en memoria (`bytes.Buffer`), garantizando que la emisión del certificado sea inmutable y no dependa de librerías cliente en el navegador que puedan ser manipuladas. |
+| **Servicio de Correo** | `net/smtp` estándar | Envío de correos transaccionales (recuperación de contraseña) desacoplado de proveedores propietarios; soporta servidores locales de prueba (Mailpit en `:1025`) y servidores SMTP de producción (`:587` / STARTTLS) vía variables de entorno. |
 
 ---
 
@@ -57,3 +65,18 @@ Durante la implementación del Avance 3 se identificó que caídas temporales de
 Para resolverlo, la arquitectura incorpora un principio de **tolerancia a fallos**:
 * El frontend diferencia excepciones de red/servicio (`status: 0` o `status: 503`) de credenciales inválidas (`status: 401`).
 * Ante una caída del backend, **la sesión local y el progreso en `localStorage` NO se eliminan**. Se presenta al usuario una pantalla amigable de reintento para que no pierda su estado al restablecerse el servicio.
+
+---
+
+## 4. Resolución de Red, Proxy Unificado y Despliegue
+
+Para garantizar que la plataforma funcione de forma transparente tanto en desarrollo local (`localhost`), como en redes locales (LAN / VPN Tailscale) y en despliegues en la nube, se especifica la siguiente topología de conexión:
+
+1. **Ruta Relativa por Defecto (`/api`):**
+   * Si no se define explícitamente `VITE_API_URL`, el frontend realiza todas las peticiones contra la ruta relativa `/api`.
+2. **Reverse Proxy Integrado en Vite (`vite.config.js`):**
+   * Tanto en modo desarrollo (`vite`) como en previsualización de producción (`vite preview`), Vite actúa como *reverse proxy* redirigiendo `/api/*` hacia el backend Go (`http://127.0.0.1:8080` o `BACKEND_PROXY_TARGET`).
+   * Esto elimina problemas de CORS y permite acceder a la aplicación desde cualquier dispositivo de la red (PC externa, celular, tablet) apuntando únicamente a la IP y puerto del servidor web.
+3. **Despliegue Desacoplado o Unificado en Producción:**
+   * **Unificado (Nginx / Cloud Run / Proxy):** El proxy web enruta `/api` al binario de Go y `/` a los archivos estáticos (`dist/`).
+   * **Desacoplado (ej. Vercel + Render):** Se configura `VITE_API_URL=https://api.dominio.gob.ar/api` y `FRONTEND_URL=https://capacita.dominio.gob.ar` en el backend Go para restringir CORS exclusivamente al origen autorizado.

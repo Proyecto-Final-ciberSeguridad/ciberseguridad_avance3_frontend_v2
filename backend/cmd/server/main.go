@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"database/sql"
 	"encoding/json"
@@ -17,11 +18,13 @@ import (
 
 	"santa-fe-capacita-backend/internal/auth"
 	"santa-fe-capacita-backend/internal/database"
+	"santa-fe-capacita-backend/internal/email"
 )
 
 type app struct {
 	db            *sql.DB
 	auth          *auth.Service
+	mailer        *email.Mailer
 	allowedOrigin string
 }
 
@@ -30,6 +33,7 @@ type apiError struct {
 }
 
 func main() {
+	loadEnvFile(".env", "backend/.env")
 	databaseURL := env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/santa_fe_capacita?sslmode=disable")
 	frontendURL := env("FRONTEND_URL", "http://localhost:5173")
 	port := env("PORT", "8080")
@@ -43,7 +47,32 @@ func main() {
 	}
 	defer db.Close()
 
-	a := &app{db: db, allowedOrigin: frontendURL, auth: &auth.Service{DB: db, SessionTTL: time.Duration(sessionHours) * time.Hour, ResetTTL: time.Duration(resetMinutes) * time.Minute, FrontendURL: frontendURL, Development: development}}
+	smtpHost := env("SMTP_HOST", "localhost")
+	smtpPort := envInt("SMTP_PORT", 1025)
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
+	smtpFrom := env("SMTP_FROM", "Santa Fe Capacita <no-reply@santafe.gov.ar>")
+
+	mailer := email.NewMailer(email.Config{
+		Host:     smtpHost,
+		Port:     smtpPort,
+		User:     smtpUser,
+		Password: smtpPass,
+		From:     smtpFrom,
+	})
+
+	a := &app{
+		db:            db,
+		allowedOrigin: frontendURL,
+		mailer:        mailer,
+		auth: &auth.Service{
+			DB:          db,
+			SessionTTL:  time.Duration(sessionHours) * time.Hour,
+			ResetTTL:    time.Duration(resetMinutes) * time.Minute,
+			FrontendURL: frontendURL,
+			Development: development,
+		},
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", a.health)
 	mux.HandleFunc("POST /api/auth/register", a.register)
@@ -62,6 +91,31 @@ func main() {
 	srv := &http.Server{Addr: ":" + port, Handler: a.cors(mux), ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("API Santa Fe Capacita escuchando en http://localhost:%s", port)
 	log.Fatal(srv.ListenAndServe())
+}
+
+func loadEnvFile(paths ...string) {
+	for _, p := range paths {
+		f, err := os.Open(p)
+		if err != nil {
+			continue
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				k := strings.TrimSpace(parts[0])
+				v := strings.Trim(strings.TrimSpace(parts[1]), `"'`)
+				if os.Getenv(k) == "" {
+					os.Setenv(k, v)
+				}
+			}
+		}
+		f.Close()
+	}
 }
 
 func env(k, d string) string {
@@ -94,7 +148,13 @@ func decodeJSON(r *http.Request, v any) error {
 
 func (a *app) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", a.allowedOrigin)
+		origin := r.Header.Get("Origin")
+		log.Printf("[HTTP] %s %s (Origin: %s, Remote: %s)", r.Method, r.URL.Path, origin, r.RemoteAddr)
+		if a.auth.Development && origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", a.allowedOrigin)
+		}
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
@@ -187,16 +247,38 @@ func (a *app) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 400, apiError{"Solicitud inválida."})
 		return
 	}
+	log.Printf("[AUTH] forgot-password solicitado para: %s", in.Email)
 	resetURL, err := a.auth.RequestPasswordReset(r.Context(), in.Email)
 	if err != nil {
-		log.Printf("forgot password: %v", err)
+		log.Printf("[AUTH] forgot password error: %v", err)
 		writeJSON(w, 500, apiError{"No se pudo procesar la recuperación."})
 		return
 	}
+	if resetURL == "" {
+		log.Printf("[AUTH] forgot-password: no existe usuario con email %s (respuesta genérica)", in.Email)
+	}
 	out := map[string]any{"message": "Si existe una cuenta asociada al correo ingresado, recibirás las instrucciones para restablecer tu contraseña."}
-	if a.auth.Development && resetURL != "" {
-		out["devResetUrl"] = resetURL
-		log.Printf("enlace de recuperación (desarrollo): %s", resetURL)
+	if resetURL != "" {
+		finalResetURL := resetURL
+		if origin := strings.TrimRight(r.Header.Get("Origin"), "/"); origin != "" {
+			frontendBase := strings.TrimRight(a.auth.FrontendURL, "/")
+			if strings.HasPrefix(finalResetURL, frontendBase) {
+				finalResetURL = origin + strings.TrimPrefix(finalResetURL, frontendBase)
+			}
+		}
+
+		// Enviar correo transaccional vía SMTP (en goroutine para respuesta inmediata)
+		go func(dest, url string) {
+			if err := a.mailer.SendPasswordReset(dest, url); err != nil {
+				log.Printf("[MAILER] error enviando correo a %s: %v", dest, err)
+			} else {
+				log.Printf("[MAILER] correo de recuperación enviado exitosamente a %s", dest)
+			}
+		}(in.Email, finalResetURL)
+
+		if a.auth.Development {
+			log.Printf("[DEV] enlace de recuperación generado: %s", finalResetURL)
+		}
 	}
 	writeJSON(w, 200, out)
 }
@@ -213,14 +295,16 @@ func (a *app) resetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	err := a.auth.ResetPassword(r.Context(), strings.TrimSpace(in.Token), in.NewPassword)
 	if errors.Is(err, auth.ErrInvalidResetToken) {
+		log.Printf("[AUTH] reset-password rechazado: token inválido o vencido")
 		writeJSON(w, 400, apiError{err.Error()})
 		return
 	}
 	if err != nil {
-		log.Printf("reset password: %v", err)
+		log.Printf("[AUTH] reset password error: %v", err)
 		writeJSON(w, 500, apiError{"No se pudo actualizar la contraseña."})
 		return
 	}
+	log.Printf("[AUTH] reset-password exitoso: contraseña actualizada correctamente")
 	writeJSON(w, 200, map[string]bool{"ok": true})
 }
 

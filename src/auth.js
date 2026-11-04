@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 const SESSION_TOKEN_KEY = 'sf-capacita-token';
 const CURRENT_USER_KEY = 'sf-capacita-current-user';
 
@@ -25,6 +25,21 @@ export function getToken() {
   return localStorage.getItem(SESSION_TOKEN_KEY) || '';
 }
 
+function getFallbackApiUrl() {
+  if (typeof window === 'undefined') return 'http://localhost:8080/api';
+  return `${window.location.protocol}//${window.location.hostname}:8080/api`;
+}
+
+async function fetchWithFallback(path, init) {
+  try {
+    const res = await fetch(`${API_URL}${path}`, init);
+    if (res.status !== 404 && res.status !== 502) return res;
+  } catch {
+    // Fallback al puerto 8080 del mismo host si el proxy no está activo
+  }
+  return fetch(`${getFallbackApiUrl()}${path}`, init);
+}
+
 export async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   const token = getToken();
@@ -32,7 +47,7 @@ export async function api(path, options = {}) {
 
   let response;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...options, headers });
+    response = await fetchWithFallback(path, { ...options, headers });
   } catch {
     throw new ApiError(
       'No pudimos conectar con el servicio. Verificá que el backend y la base de datos estén disponibles e intentá nuevamente.',
@@ -100,7 +115,7 @@ export function logoutUser() {
   const token = getToken();
   clearSession();
   if (token) {
-    fetch(`${API_URL}/auth/logout`, {
+    fetchWithFallback('/auth/logout', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     }).catch(() => {});
@@ -124,7 +139,7 @@ export async function resetPassword(token, newPassword) {
 
 export async function downloadAuthenticatedFile(path, filename) {
   const token = getToken();
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetchWithFallback(path, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!response.ok) {

@@ -41,10 +41,10 @@ export default function Login() {
           <div className="auth-icon"><span className="material-symbols-outlined">lock_person</span></div>
           <h1>Iniciar sesión</h1>
           <p>Ingresá tus datos para continuar con tu capacitación.</p>
-          <label>Correo institucional <b>*</b>
+          <label><span>Correo institucional <b>*</b></span>
             <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nombre.apellido@santafe.gov.ar" autoComplete="email" />
           </label>
-          <label>Contraseña <b>*</b>
+          <label><span>Contraseña <b>*</b></span>
             <div className="password-wrap">
               <input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Ingresá tu contraseña" autoComplete="current-password" />
               <button type="button" onClick={()=>setShowPassword(v=>!v)} aria-label="Mostrar u ocultar contraseña"><span className="material-symbols-outlined">visibility</span></button>
