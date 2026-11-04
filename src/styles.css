@@ -34,3 +34,19 @@
 .video-progress-pill{display:inline-flex;align-items:center;gap:6px;background:#eef5ff;border:1px solid #c9d9ef;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;color:#00346e}
 .meta-done{color:#08714f;font-weight:700}
 
+/* ===== Descarga de Material Teórico (PDF Oficial) ===== */
+.theory-download-card{margin-top:24px;background:#fff;border:1px solid #c8d7eb;border-left:5px solid #004a98;border-radius:14px;padding:24px;display:flex;justify-content:space-between;align-items:center;gap:24px;box-shadow:0 3px 12px rgba(26,43,71,.04)}
+.theory-download-content{display:flex;align-items:flex-start;gap:18px}
+.theory-download-icon{width:52px;height:52px;border-radius:12px;background:#eef4ff;color:#00458f;display:grid;place-items:center;flex:none}
+.theory-download-icon .material-symbols-outlined{font-size:28px}
+.theory-download-info{display:flex;flex-direction:column}
+.theory-download-badge{display:inline-flex;align-self:flex-start;background:#eef5ff;border-radius:999px;padding:3px 9px;color:#004a98;font-size:10px;font-weight:800;letter-spacing:.05em;margin-bottom:6px}
+.theory-download-info h2{margin:0 0 6px;color:#00346e;font-size:19px}
+.theory-download-info p{margin:0;color:#526071;font-size:13px;line-height:1.55;max-width:680px}
+.theory-download-meta{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:#6d7989;font-weight:600}
+.theory-download-actions{display:flex;flex-direction:column;gap:10px;flex:none}
+.theory-download-actions .btn{white-space:nowrap;padding:11px 18px;font-size:13px}
+@media(max-width:850px){.theory-download-card{flex-direction:column;align-items:stretch}.theory-download-actions{flex-direction:row;justify-content:stretch}.theory-download-actions .btn{flex:1}}
+@media(max-width:550px){.theory-download-actions{flex-direction:column}}
+
+

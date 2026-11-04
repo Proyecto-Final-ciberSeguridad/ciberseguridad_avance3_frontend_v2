@@ -26,7 +26,7 @@ Esta matriz vincula los **Requerimientos Funcionales (RF)** y **No Funcionales (
 | ID | Requerimiento No Funcional | Métrica / Criterio Comprometido | Implementación en Código | Cumplimiento |
 | :--- | :--- | :--- | :--- | :--- |
 | **RNF-01** | Accesibilidad en 3 clics | Máximo 3 clics desde menú a cualquier recurso | Verificado en mapa de rutas (`src/App.jsx` y `Dashboard.jsx`) | **100% Cumplido** (1 a 2 clics reales) |
-| **RNF-02** | Extensión de contenido escrito | < 10 carillas por módulo, adaptado a bloques web breves | `src/pages/Module1Theory.jsx` dividido en 3 tarjetas temáticas | **Cumplido** |
+| **RNF-02** | Extensión de contenido escrito | < 10 carillas por módulo, adaptado a bloques web breves | `src/pages/Module1Theory.jsx` en 4 bloques + PDF oficial de 9 páginas descargable | **Cumplido** |
 | **RNF-03** | Duración de videos | Videos divididos en micro-aprendizajes breves | Video Parte 1: ~5 min; Video Parte 2: ~1:30 min | **Cumplido** |
 | **RNF-04** | Gamificación mínima | Mínimo 4 elementos de gamificación | 1) Puntos, 2) Barras de progreso, 3) Logros, 4) Próximo hito | **100% Cumplido** |
 | **RNF-05** | Usabilidad (SUS) | Puntaje SUS ≥ 73 puntos | Pruebas formales programadas previo al cierre final | *En cronograma* |
