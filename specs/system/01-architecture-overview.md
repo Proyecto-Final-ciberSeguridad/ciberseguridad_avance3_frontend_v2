@@ -57,3 +57,18 @@ Durante la implementación del Avance 3 se identificó que caídas temporales de
 Para resolverlo, la arquitectura incorpora un principio de **tolerancia a fallos**:
 * El frontend diferencia excepciones de red/servicio (`status: 0` o `status: 503`) de credenciales inválidas (`status: 401`).
 * Ante una caída del backend, **la sesión local y el progreso en `localStorage` NO se eliminan**. Se presenta al usuario una pantalla amigable de reintento para que no pierda su estado al restablecerse el servicio.
+
+---
+
+## 4. Resolución de Red, Proxy Unificado y Despliegue
+
+Para garantizar que la plataforma funcione de forma transparente tanto en desarrollo local (`localhost`), como en redes locales (LAN / VPN Tailscale) y en despliegues en la nube, se especifica la siguiente topología de conexión:
+
+1. **Ruta Relativa por Defecto (`/api`):**
+   * Si no se define explícitamente `VITE_API_URL`, el frontend realiza todas las peticiones contra la ruta relativa `/api`.
+2. **Reverse Proxy Integrado en Vite (`vite.config.js`):**
+   * Tanto en modo desarrollo (`vite`) como en previsualización de producción (`vite preview`), Vite actúa como *reverse proxy* redirigiendo `/api/*` hacia el backend Go (`http://127.0.0.1:8080` o `BACKEND_PROXY_TARGET`).
+   * Esto elimina problemas de CORS y permite acceder a la aplicación desde cualquier dispositivo de la red (PC externa, celular, tablet) apuntando únicamente a la IP y puerto del servidor web.
+3. **Despliegue Desacoplado o Unificado en Producción:**
+   * **Unificado (Nginx / Cloud Run / Proxy):** El proxy web enruta `/api` al binario de Go y `/` a los archivos estáticos (`dist/`).
+   * **Desacoplado (ej. Vercel + Render):** Se configura `VITE_API_URL=https://api.dominio.gob.ar/api` y `FRONTEND_URL=https://capacita.dominio.gob.ar` en el backend Go para restringir CORS exclusivamente al origen autorizado.

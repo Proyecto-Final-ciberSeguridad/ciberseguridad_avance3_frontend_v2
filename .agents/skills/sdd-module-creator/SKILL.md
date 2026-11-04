@@ -50,3 +50,12 @@ Ejecutar la validación:
 * Compilación limpia con `npm run build`.
 * Verificación de la regla de navegación de **máximo 3 clics** desde el Dashboard.
 * Verificación de que la barra de "Mi Progreso" suma los 100 puntos y desbloquea el siguiente módulo.
+
+---
+
+## 3. Flujo para Cambios de Arquitectura o Sistema (System Spec First)
+
+Cuando se requiera modificar un comportamiento transversal (autenticación, enrutamiento, red, base de datos o certificado):
+1. **Actualizar primero la Spec del Sistema** correspondiente en `specs/system/01..06-*.md` reflejando el nuevo contrato o decisión arquitectónica.
+2. **Implementar los cambios** en `src/` y/o `backend/` respetando estrictamente lo especificado.
+3. **Verificar** que el build de frontend (`npm run build`), la compilación de Go (`go build ./...`) y los flujos existentes sigan funcionando sin regresiones.

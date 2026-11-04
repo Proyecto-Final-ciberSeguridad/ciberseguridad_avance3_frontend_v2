@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 const SESSION_TOKEN_KEY = 'sf-capacita-token';
 const CURRENT_USER_KEY = 'sf-capacita-current-user';
 

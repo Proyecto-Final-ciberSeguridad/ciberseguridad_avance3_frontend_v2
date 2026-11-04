@@ -94,7 +94,12 @@ func decodeJSON(r *http.Request, v any) error {
 
 func (a *app) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", a.allowedOrigin)
+		origin := r.Header.Get("Origin")
+		if a.auth.Development && origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", a.allowedOrigin)
+		}
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
@@ -195,6 +200,12 @@ func (a *app) forgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	out := map[string]any{"message": "Si existe una cuenta asociada al correo ingresado, recibirás las instrucciones para restablecer tu contraseña."}
 	if a.auth.Development && resetURL != "" {
+		if origin := strings.TrimRight(r.Header.Get("Origin"), "/"); origin != "" {
+			frontendBase := strings.TrimRight(a.auth.FrontendURL, "/")
+			if strings.HasPrefix(resetURL, frontendBase) {
+				resetURL = origin + strings.TrimPrefix(resetURL, frontendBase)
+			}
+		}
 		out["devResetUrl"] = resetURL
 		log.Printf("enlace de recuperación (desarrollo): %s", resetURL)
 	}

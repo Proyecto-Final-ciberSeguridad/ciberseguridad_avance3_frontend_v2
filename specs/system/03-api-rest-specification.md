@@ -2,7 +2,8 @@
 
 ## 1. Convenciones Globales
 
-* **Base URL:** `http://localhost:8080/api` (o vía variable de entorno `VITE_API_URL`).
+* **Base URL:** `/api` por defecto (enrutado mediante proxy de Vite o servidor web hacia `http://127.0.0.1:8080/api`), o sobreescribible vía variable de entorno `VITE_API_URL`.
+* **CORS y Orígenes:** En entorno de producción (`APP_ENV=production`) se valida estrictamente contra `FRONTEND_URL`. En entorno de desarrollo (`APP_ENV=development`), se admite también el origen dinámico (`Origin` / `Referer`) para permitir pruebas en red local (LAN / Tailscale) y construir el enlace `devResetUrl` con el host desde el que opera el usuario.
 * **Formato de intercambio:** `application/json; charset=utf-8`.
 * **Autenticación:** Cabecera HTTP `Authorization: Bearer <token_hex>`.
 * **Estructura de error unificada:**
