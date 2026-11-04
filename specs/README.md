@@ -37,23 +37,20 @@ specs/
 
 ## 🚀 Flujo para Crear un Nuevo Módulo (Módulo 2, 3 o 4)
 
-### Opción A: Usando la Skill con Asistente IA (Antigravity / Gemini)
+### Usando la Skill con Asistente IA (Antigravity)
 Cualquier integrante del equipo que clone el repositorio tiene la skill integrada automáticamente en el workspace (`.agents/skills/sdd-module-creator`).
 Simplemente puede pedirle al asistente:
 > *"Quiero crear el Módulo 2 usando la skill de SDD"*
-El asistente:
-1. Inspeccionará los documentos Word de teoría y cuestionarios correspondientes.
-2. Sintetizará y verificará que cumpla con los límites acordados (<10 carillas y video <5 min).
-3. Generará la especificación `specs/modules/module-2.spec.md`.
-4. Guiará o implementará los componentes y rutas en el frontend.
 
-### Opción B: Flujo Manual Asistido por Script
-1. Ejecutar el asistente de análisis de insumos:
-   ```bash
-   python3 specs/tools/create_module_spec.py --module 2
-   ```
-2. Copiar `specs/modules/template.spec.md` en `specs/modules/module-2.spec.md`.
-3. Completar las secciones (metadatos, escenarios de simulación, preguntas de evaluación).
-4. Implementar las claves de recursos en `src/moduleData.js` y las vistas en `src/pages/`.
-5. Ejecutar `npm run build` y verificar que la sección "Mi Progreso" registre el avance.
+El asistente automáticamente:
+1. Inspecciona los documentos Word (.docx) de teoría y cuestionarios correspondientes.
+2. Genera la especificación `specs/modules/module-X.spec.md` basada en `template.spec.md`.
+3. Integra las claves de recursos en `src/moduleData.js` y las vistas en el frontend.
+4. Ejecuta el checklist de aceptación y verificación.
+
+### Flujo Manual (Sin IA)
+1. Copiar `specs/modules/template.spec.md` en `specs/modules/module-X.spec.md`.
+2. Completar las secciones (metadatos, escenarios de simulación, preguntas de evaluación extraídas de los .docx).
+3. Implementar las claves de recursos en `src/moduleData.js` y las vistas en `src/pages/`.
+4. Ejecutar `npm run build` y verificar que la sección "Mi Progreso" registre el avance.
 
