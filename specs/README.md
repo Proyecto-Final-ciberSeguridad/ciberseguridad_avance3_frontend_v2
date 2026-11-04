@@ -37,8 +37,23 @@ specs/
 
 ## 🚀 Flujo para Crear un Nuevo Módulo (Módulo 2, 3 o 4)
 
-1. **Lectura del insumo:** Consultar el apunte teórico (`Modulos de teoria/`) y cuestionarios asociados.
-2. **Crear la especificación:** Copiar `specs/modules/template.spec.md` en `specs/modules/module-X.spec.md` y completar los metadatos, contenidos, actividad práctica y banco de preguntas.
-3. **Validar la Spec:** Verificar que respete las pautas no funcionales (extensión concisa, video <5 min, regla de 3 clics).
-4. **Implementar:** Cargar los datos y conectar los componentes de frontend o backend correspondientes.
-5. **Verificar:** Aplicar el checklist de aceptación antes de realizar el commit.
+### Opción A: Usando la Skill con Asistente IA (Antigravity / Gemini)
+Cualquier integrante del equipo que clone el repositorio tiene la skill integrada automáticamente en el workspace (`skills/sdd-module-creator` o `.agents/skills/sdd-module-creator`).
+Simplemente puede pedirle al asistente:
+> *"Quiero crear el Módulo 2 usando la skill de SDD"*
+El asistente:
+1. Inspeccionará los documentos Word de teoría y cuestionarios correspondientes.
+2. Sintetizará y verificará que cumpla con los límites acordados (<10 carillas y video <5 min).
+3. Generará la especificación `specs/modules/module-2.spec.md`.
+4. Guiará o implementará los componentes y rutas en el frontend.
+
+### Opción B: Flujo Manual Asistido por Script
+1. Ejecutar el asistente de análisis de insumos:
+   ```bash
+   python3 specs/tools/create_module_spec.py --module 2
+   ```
+2. Copiar `specs/modules/template.spec.md` en `specs/modules/module-2.spec.md`.
+3. Completar las secciones (metadatos, escenarios de simulación, preguntas de evaluación).
+4. Implementar las claves de recursos en `src/moduleData.js` y las vistas en `src/pages/`.
+5. Ejecutar `npm run build` y verificar que la sección "Mi Progreso" registre el avance.
+
