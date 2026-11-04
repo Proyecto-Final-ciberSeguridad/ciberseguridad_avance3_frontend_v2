@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"database/sql"
 	"encoding/json"
@@ -32,6 +33,7 @@ type apiError struct {
 }
 
 func main() {
+	loadEnvFile(".env", "backend/.env")
 	databaseURL := env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/santa_fe_capacita?sslmode=disable")
 	frontendURL := env("FRONTEND_URL", "http://localhost:5173")
 	port := env("PORT", "8080")
@@ -89,6 +91,31 @@ func main() {
 	srv := &http.Server{Addr: ":" + port, Handler: a.cors(mux), ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("API Santa Fe Capacita escuchando en http://localhost:%s", port)
 	log.Fatal(srv.ListenAndServe())
+}
+
+func loadEnvFile(paths ...string) {
+	for _, p := range paths {
+		f, err := os.Open(p)
+		if err != nil {
+			continue
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				k := strings.TrimSpace(parts[0])
+				v := strings.Trim(strings.TrimSpace(parts[1]), `"'`)
+				if os.Getenv(k) == "" {
+					os.Setenv(k, v)
+				}
+			}
+		}
+		f.Close()
+	}
 }
 
 func env(k, d string) string {
