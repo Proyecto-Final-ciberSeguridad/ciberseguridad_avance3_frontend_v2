@@ -6,6 +6,7 @@ const backendTarget = process.env.BACKEND_PROXY_TARGET || 'http://127.0.0.1:8080
 export default defineConfig({
   plugins: [react()],
   server: {
+    cors: true,
     proxy: {
       '/api': {
         target: backendTarget,
@@ -14,6 +15,7 @@ export default defineConfig({
     },
   },
   preview: {
+    cors: true,
     proxy: {
       '/api': {
         target: backendTarget,

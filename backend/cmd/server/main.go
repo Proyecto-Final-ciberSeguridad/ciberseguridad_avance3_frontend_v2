@@ -95,6 +95,7 @@ func decodeJSON(r *http.Request, v any) error {
 func (a *app) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
+		log.Printf("[HTTP] %s %s (Origin: %s, Remote: %s)", r.Method, r.URL.Path, origin, r.RemoteAddr)
 		if a.auth.Development && origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		} else {
