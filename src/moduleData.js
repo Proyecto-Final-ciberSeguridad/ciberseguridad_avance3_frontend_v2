@@ -5,7 +5,7 @@ export const modules = {
     subtitle: 'Ciberseguridad y buenas prácticas digitales en el trabajo cotidiano.',
     resources: [
       { key: 'teoria', stage: 'teoria', step: 1, icon: 'menu_book', kind: 'Documento de lectura', title: 'Material teórico — Introducción a la Seguridad Digital', short: 'Material teórico', description: 'Conceptos introductorios sobre seguridad digital y buenas prácticas aplicadas al trabajo cotidiano.' },
-      { key: 'video', stage: 'video', step: 2, icon: 'play_circle', kind: 'Recurso audiovisual', title: 'Video del módulo', short: 'Video', description: 'Recurso audiovisual breve para reforzar los principales conceptos del módulo.' },
+      { key: 'video', stage: 'video', step: 2, icon: 'play_circle', kind: 'Recurso audiovisual', title: 'Videos del módulo', short: 'Videos', description: 'Síntesis conceptual de ciberseguridad en el trabajo y pauta práctica de la regla de cuatro pasos antes de actuar.' },
       { key: 'actividad', stage: 'actividad', step: 3, icon: 'assignment', kind: 'Práctica interactiva', title: 'Actividad práctica', short: 'Actividad', description: 'Situación guiada para aplicar los conceptos del módulo a un caso cotidiano.' },
       { key: 'evaluacion', stage: 'evaluacion', step: 4, icon: 'quiz', kind: 'Evaluación', title: 'Evaluación del módulo', short: 'Evaluación', description: 'Preguntas para verificar la comprensión de los contenidos trabajados.' }
     ]

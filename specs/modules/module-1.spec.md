@@ -37,9 +37,13 @@ flowchart LR
 * **Infografías:** Ubicadas en `public/assets/module1/` (`infografia1.svg`, `infografia2.svg`, `infografia3.svg`).
 
 ### 3.2 Recurso Audiovisual (`video`)
-* **Archivo:** `public/assets/module1/video-modulo1.mp4` (o reproductor integrado).
-* **Duración:** ~2 minutos (cumple RNF < 5 min).
-* **Contenido:** Síntesis animada de los 3 pilares y llamada a la acción para desconfiar de mensajes con urgencia artificial.
+* **Archivos:**
+  * `public/assets/module1/videomodulo1.mp4`: *Parte 1 — Ciberseguridad en el Trabajo* (Síntesis conceptual, duración ~5:12 min).
+  * `public/assets/module1/videomodulo1despues.mp4`: *Parte 2 — Regla de los Cuatro Pasos: Antes de actuar* (Pauta práctica preventiva, duración ~1:27 min).
+* **Duración total:** ~6:39 minutos distribuidos en dos bloques didácticos independientes.
+* **Contenido:**
+  1. Síntesis animada de la tríada CIA, protección de activos digitales y hábitos seguros.
+  2. Aplicación paso a paso de los 4 controles preventivos antes de actuar frente a comunicaciones sospechosas.
 
 ### 3.3 Actividad Práctica Interactiva (`actividad`)
 Consta de **3 situaciones simuladas** basadas en incidentes reales de oficinas públicas:
